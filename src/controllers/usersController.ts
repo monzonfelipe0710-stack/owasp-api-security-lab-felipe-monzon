@@ -39,31 +39,59 @@ export const getUserById = async (req: CustomRequest, res: Response) => {
 
       res.json(user);
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+export const updateUser = async (req: CustomRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+    const requestedId = Number(req.params.id);
 
-    const fields = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(updateData);
+    if (!Number.isInteger(requestedId) || requestedId <= 0) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
 
-    const sql = `UPDATE users SET ${fields} WHERE id = ?`;
-    db.run(sql, [...values, id], function (err) {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (req.user.id !== requestedId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Access denied: you cannot modify this user'
+      });
+    }
+
+    if (
+      !req.body ||
+      Object.keys(req.body).length !== 1 ||
+      typeof req.body.email !== 'string' ||
+      !req.body.email.trim()
+    ) {
+      return res.status(400).json({
+        message: 'Invalid data. Only the email property can be updated.'
+      });
+    }
+
+    const sql = 'UPDATE users SET email = ? WHERE id = ?';
+
+    db.run(sql, [req.body.email.trim(), requestedId], function (err) {
       if (err) {
-        return res.status(500).json({ message: 'Server error', error: err.message });
+        return res.status(500).json({ message: 'Server error' });
       }
+
       if (this.changes === 0) {
-        return res.status(404).json({ message: 'User not found or no changes made.' });
+        return res.status(404).json({
+          message: 'User not found or no changes made.'
+        });
       }
-      res.json({ message: 'User updated successfully', changes: this.changes });
+
+      return res.json({
+        message: 'Email updated successfully.'
+      });
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  } catch {
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -183,8 +211,8 @@ export const getSystemLogs = (req: Request, res: Response) => {
 };
 
 export const exportAllUsers = (req: CustomRequest, res: Response) => {
-
     const sql = 'SELECT id, username, email, role FROM users';
+
     db.all(sql, [], (err, rows: User[]) => {
         if (err) {
             return res.status(500).json({ error: err.message });
