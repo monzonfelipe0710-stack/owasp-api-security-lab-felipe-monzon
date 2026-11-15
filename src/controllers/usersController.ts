@@ -154,21 +154,78 @@ export const deleteUser = async (req: CustomRequest, res: Response) => {
   }
 };
 
-export const setProfilePictureFromUrl = async (req: Request, res: Response) => {
+// API7: Protección contra Server-Side Request Forgery (SSRF).
+export const setProfilePictureFromUrl = async (req: CustomRequest, res: Response) => {
   const { url } = req.body;
 
-  if (!url) {
-    return res.status(400).json({ message: 'URL is required' });
+  if (typeof url !== 'string' || !url.trim()) {
+    return res.status(400).json({
+      message: 'A valid URL is required.'
+    });
   }
 
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const parsedUrl = new URL(url);
 
-    console.log(`Fetched image from ${url}, size: ${response.data.length} bytes.`);
+    // Aceptar únicamente conexiones HTTPS.
+    if (parsedUrl.protocol !== 'https:') {
+      return res.status(400).json({
+        message: 'Only HTTPS URLs are allowed.'
+      });
+    }
 
-    return res.status(200).json({ message: 'Profile picture updated from URL.' });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to fetch image from URL.', error: (error as Error).message });
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Bloquear destinos locales y nombres de host internos.
+    const blockedHosts = [
+      'localhost',
+      'localhost.localdomain',
+      '127.0.0.1',
+      '::1',
+      '[::1]',
+      '0.0.0.0',
+      '169.254.169.254'
+    ];
+
+    if (
+      blockedHosts.includes(hostname) ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      return res.status(400).json({
+        message: 'Local or internal destinations are not allowed.'
+      });
+    }
+
+    const response = await axios.get(parsedUrl.toString(), {
+      responseType: 'arraybuffer',
+      timeout: 5000,
+      maxContentLength: 2 * 1024 * 1024,
+      maxBodyLength: 2 * 1024 * 1024,
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 300
+    });
+
+    const contentType = response.headers['content-type'];
+
+    if (
+      typeof contentType !== 'string' ||
+      !contentType.toLowerCase().startsWith('image/')
+    ) {
+      return res.status(400).json({
+        message: 'The provided URL must return an image.'
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Profile picture URL validated successfully.'
+    });
+
+  } catch {
+    return res.status(400).json({
+      message: 'Invalid or inaccessible image URL.'
+    });
   }
 };
 

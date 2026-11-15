@@ -1,13 +1,10 @@
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { CustomRequest } from '../middlewares/auth';
-
-let totalCoupons = 100;
-
-const userClaims = new Map<number, { count: number; windowStart: number }>();
+import { db } from '../services/Database';
 
 const MAX_CLAIMS = 3;
-const WINDOW_MS = 60 * 60 * 1000;
+const MAX_TOTAL_COUPONS = 100;
 
 export const claimCoupon = (req: CustomRequest, res: Response) => {
   const userId = req.user?.id;
@@ -18,35 +15,68 @@ export const claimCoupon = (req: CustomRequest, res: Response) => {
     });
   }
 
-  const now = Date.now();
-  let userLimit = userClaims.get(userId);
+  // Consultar los reclamos de esta cuenta durante la última hora
+  db.get(
+    `SELECT COUNT(*) AS total
+     FROM coupon_claims
+     WHERE user_id = ?
+     AND claimed_at >= datetime('now', '-1 hour')`,
+    [userId],
+    (err, userRow: { total: number }) => {
+      if (err) {
+        console.error('Error al consultar reclamos del usuario:', err.message);
+        return res.status(500).json({
+          message: 'Could not verify coupon claims.'
+        });
+      }
 
-  if (!userLimit || now - userLimit.windowStart >= WINDOW_MS) {
-    userLimit = {
-      count: 0,
-      windowStart: now
-    };
-  }
+      if (userRow.total >= MAX_CLAIMS) {
+        return res.status(429).json({
+          message: 'Rate limit exceeded. Try again later.'
+        });
+      }
 
-  if (userLimit.count >= MAX_CLAIMS) {
-    return res.status(429).json({
-      message: 'Rate limit exceeded. Try again later.'
-    });
-  }
+      // Consultar el total de cupones entregados
+      db.get(
+        'SELECT COUNT(*) AS total FROM coupon_claims',
+        [],
+        (totalErr, totalRow: { total: number }) => {
+          if (totalErr) {
+            console.error('Error al consultar cupones:', totalErr.message);
+            return res.status(500).json({
+              message: 'Could not verify coupon availability.'
+            });
+          }
 
-  if (totalCoupons <= 0) {
-    return res.status(400).json({
-      message: 'No more coupons left!'
-    });
-  }
+          if (totalRow.total >= MAX_TOTAL_COUPONS) {
+            return res.status(400).json({
+              message: 'No more coupons left!'
+            });
+          }
 
-  userLimit.count++;
-  userClaims.set(userId, userLimit);
-  totalCoupons--;
+          // Registrar el reclamo de forma persistente
+          db.run(
+            'INSERT INTO coupon_claims (user_id) VALUES (?)',
+            [userId],
+            function (insertErr) {
+              if (insertErr) {
+                console.error('Error al registrar el cupón:', insertErr.message);
+                return res.status(500).json({
+                  message: 'Could not register coupon claim.'
+                });
+              }
 
-  return res.status(200).json({
-    message: 'Coupon claimed!',
-    coupons_left: totalCoupons,
-    claims_remaining: MAX_CLAIMS - userLimit.count
-  });
+              const claimsUsed = userRow.total + 1;
+
+              return res.status(200).json({
+                message: 'Coupon claimed!',
+                coupons_left: MAX_TOTAL_COUPONS - totalRow.total - 1,
+                claims_remaining: MAX_CLAIMS - claimsUsed
+              });
+            }
+          );
+        }
+      );
+    }
+  );
 };

@@ -55,7 +55,37 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
 
       console.log('Tabla "revoked_tokens" creada o ya existente.');
 
-      initializeAdminAndMigratePasswords();
+      // Crear tabla para registrar los reclamos de cupones
+      db.run(`
+        CREATE TABLE IF NOT EXISTS coupon_claims (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          claimed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `, (err) => {
+        if (err) {
+          console.error("Error al crear coupon_claims:", err.message);
+          return;
+        }
+
+        console.log('Tabla "coupon_claims" creada o ya existente.');
+
+        // Índice para consultar los reclamos de cada usuario
+        db.run(`
+          CREATE INDEX IF NOT EXISTS idx_coupon_claims_user_date
+          ON coupon_claims (user_id, claimed_at)
+        `, (err) => {
+          if (err) {
+            console.error("Error al crear índice de coupon_claims:", err.message);
+            return;
+          }
+
+          console.log("Índice de reclamos de cupones creado o existente.");
+
+          initializeAdminAndMigratePasswords();
+        });
+      });
     });
   });
 });

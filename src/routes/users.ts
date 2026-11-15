@@ -1,17 +1,18 @@
 
 import { Router } from 'express';
+
 import {
-    getUserById,
-    updateUser,
-    getAllUsers,
-    deleteUser,
-    setProfilePictureFromUrl,
-    searchUsers,
-    updateEmail,
-    getAccountInfo,
-    recoverPassword,
-    getSystemLogs,
-    exportAllUsers
+  getUserById,
+  updateUser,
+  getAllUsers,
+  deleteUser,
+  setProfilePictureFromUrl,
+  searchUsers,
+  updateEmail,
+  getAccountInfo,
+  recoverPassword,
+  getSystemLogs,
+  exportAllUsers
 } from '../controllers/usersController';
 
 import { authenticate, checkAdminRole } from '../middlewares/auth';
@@ -24,7 +25,10 @@ router.get('/admin/users/export_all', authenticate, checkAdminRole, exportAllUse
 
 // Rutas generales y de perfil.
 router.get('/', getAllUsers);
-router.post('/profile-picture', setProfilePictureFromUrl);
+
+// API7: el cambio de imagen requiere autenticación.
+router.post('/profile-picture', authenticate, setProfilePictureFromUrl);
+
 router.put('/profile/update_email', authenticate, updateEmail);
 router.get('/search', searchUsers);
 router.get('/account/:id', getAccountInfo);
