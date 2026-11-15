@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import {
     getUserById,
@@ -12,25 +13,26 @@ import {
     getSystemLogs,
     exportAllUsers
 } from '../controllers/usersController';
-import { authenticate } from '../middlewares/auth';
+
+import { authenticate, checkAdminRole } from '../middlewares/auth';
 
 const router: Router = Router();
 
-// Rutas de administración (BFLA: falta checkAdminRole)
-router.get('/admin/system-logs', authenticate, getSystemLogs);
-router.get('/admin/users/export_all', authenticate, exportAllUsers);
+// Rutas administrativas: requieren autenticación y rol de administrador.
+router.get('/admin/system-logs', authenticate, checkAdminRole, getSystemLogs);
+router.get('/admin/users/export_all', authenticate, checkAdminRole, exportAllUsers);
 
-// Rutas generales y de perfil
-router.get('/', getAllUsers); // A04: Unrestricted Resource Consumption (?limit=...)
-router.post('/profile-picture', setProfilePictureFromUrl); // A07: SSRF
+// Rutas generales y de perfil.
+router.get('/', getAllUsers);
+router.post('/profile-picture', setProfilePictureFromUrl);
 router.put('/profile/update_email', authenticate, updateEmail);
 router.get('/search', searchUsers);
 router.get('/account/:id', getAccountInfo);
 router.post('/recover', recoverPassword);
 
-// Rutas por ID de usuario
-router.get('/:id', authenticate, getUserById); // A01: BOLA y A03: Excessive Data Exposure (expone password)
-router.put('/:id', authenticate, updateUser); // A03: Mass Assignment (permite alterar role)
-router.delete('/:id', authenticate, deleteUser); // A05: BFLA (función administrativa sin verificar rol)
+// Rutas por ID de usuario.
+router.get('/:id', authenticate, getUserById);
+router.put('/:id', authenticate, updateUser);
+router.delete('/:id', authenticate, deleteUser);
 
 export default router;

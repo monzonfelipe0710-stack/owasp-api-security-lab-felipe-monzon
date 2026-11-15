@@ -5,7 +5,7 @@ import { User } from '../models/user';
 import axios from 'axios';
 
 interface CustomRequest extends Request {
-    user?: User;
+  user?: User;
 }
 
 export const getUserById = async (req: CustomRequest, res: Response) => {
@@ -37,10 +37,10 @@ export const getUserById = async (req: CustomRequest, res: Response) => {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      res.json(user);
+      return res.json(user);
     });
   } catch {
-    res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -111,29 +111,46 @@ export const getAllUsers = async (req: Request, res: Response) => {
       if (err) {
         return res.status(500).json({ message: 'Server error', error: err.message });
       }
-      res.json(users);
+      return res.json(users);
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
-export const deleteUser = async (req: Request, res: Response) => {
+export const deleteUser = async (req: CustomRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const requestedId = Number(req.params.id);
+
+    if (!Number.isInteger(requestedId) || requestedId <= 0) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: 'Access denied. Administrator role required.'
+      });
+    }
 
     const sql = 'DELETE FROM users WHERE id = ?';
-    db.run(sql, [id], function (err) {
+
+    db.run(sql, [requestedId], function (err) {
       if (err) {
-        return res.status(500).json({ message: 'Server error', error: err.message });
+        return res.status(500).json({ message: 'Server error' });
       }
+
       if (this.changes === 0) {
         return res.status(404).json({ message: 'User not found.' });
       }
-      res.status(200).json({ message: 'User deleted' });
+
+      return res.status(200).json({ message: 'User deleted.' });
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  } catch {
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -149,78 +166,85 @@ export const setProfilePictureFromUrl = async (req: Request, res: Response) => {
 
     console.log(`Fetched image from ${url}, size: ${response.data.length} bytes.`);
 
-    res.status(200).json({ message: 'Profile picture updated from URL.' });
+    return res.status(200).json({ message: 'Profile picture updated from URL.' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch image from URL.', error: (error as Error).message });
+    return res.status(500).json({ message: 'Failed to fetch image from URL.', error: (error as Error).message });
   }
 };
 
 export const searchUsers = (req: Request, res: Response) => {
-    const query = req.query.q as string;
+  const query = req.query.q as string;
 
-    const sql = `SELECT id, username, role FROM users WHERE username LIKE '%${query}%'`;
+  const sql = `SELECT id, username, role FROM users WHERE username LIKE '%${query}%'`;
 
-    db.all(sql, [], (err, rows: User[]) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ users: rows });
-    });
+  db.all(sql, [], (err, rows: User[]) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.json({ users: rows });
+  });
 };
 
 export const updateEmail = (req: CustomRequest, res: Response) => {
-    const { new_email } = req.body;
-    const loggedInUser = req.user!;
+  const { new_email } = req.body;
+  const loggedInUser = req.user!;
 
-    const sql = 'UPDATE users SET email = ? WHERE id = ?';
-    db.run(sql, [new_email, loggedInUser.id], function (err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (this.changes === 0) {
-            return res.status(404).send('User not found or email not changed.');
-        }
-        res.json({ message: 'Email updated successfully.' });
-    });
+  const sql = 'UPDATE users SET email = ? WHERE id = ?';
+  db.run(sql, [new_email, loggedInUser.id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).send('User not found or email not changed.');
+    }
+    return res.json({ message: 'Email updated successfully.' });
+  });
 };
 
 export const getAccountInfo = (req: Request, res: Response) => {
-    const accountId = req.params.id;
+  const accountId = req.params.id;
 
-    const sql = 'SELECT id, username, role FROM users WHERE id = ?';
+  const sql = 'SELECT id, username, role FROM users WHERE id = ?';
 
-    db.get(sql, [accountId], (err, row: User) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (!row) {
-            return res.status(404).json({ error: 'Cuenta no encontrada' });
-        }
-        res.json({ account: row });
-    });
+  db.get(sql, [accountId], (err, row: User) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!row) {
+      return res.status(404).json({ error: 'Cuenta no encontrada' });
+    }
+    return res.json({ account: row });
+  });
 };
 
 export const recoverPassword = (req: Request, res: Response) => {
-    const { username, security_answer } = req.body;
+  const { username, security_answer } = req.body;
 
-    res.status(501).json({ message: 'Función no implementada.' });
+  return res.status(501).json({ message: 'Función no implementada.' });
 };
 
 export const getSystemLogs = (req: Request, res: Response) => {
-    res.json({ logs: "Mostrando logs del sistema... Acceso concedido.", user: (req as any).user });
+  return res.json({
+    logs: 'Mostrando logs del sistema... Acceso concedido.',
+    user: (req as any).user
+  });
 };
 
 export const exportAllUsers = (req: CustomRequest, res: Response) => {
-    const sql = 'SELECT id, username, email, role FROM users';
+  const sql = 'SELECT id, username, email, role FROM users';
 
-    db.all(sql, [], (err, rows: User[]) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+  db.all(sql, [], (err, rows: User[]) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
 
-        res.json({
-            total_users: rows.length,
-            user_list: rows.map(u => ({ userId: u.id, username: u.username, role: u.role }))
-        });
+    return res.json({
+      total_users: rows.length,
+      user_list: rows.map(u => ({
+        userId: u.id,
+        username: u.username,
+        role: u.role
+      }))
     });
+  });
 };
