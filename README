@@ -1,6 +1,6 @@
 # Análisis de seguridad de una API REST conforme a OWASP API Security Top 10 – 2023
 
-## Trabajo práctico de ciberseguridad
+### Trabajo práctico de ciberseguridad
 
 **Seminario de Actualización III**  
 **Instituto Politécnico Formosa**  
@@ -41,11 +41,15 @@ Tecnicatura Superior en Desarrollo de Software Multiplataforma
 
 ## 1. Resumen del proyecto
 
-Este trabajo presenta el análisis práctico de una API REST desarrollado con fines académicos y tomando como marco de referencia **OWASP API Security Top 10 – 2023**. El proyecto aborda riesgos de seguridad habituales en interfaces de programación de aplicaciones mediante la revisión de código, pruebas funcionales y la implementación de controles correctivos.
+Este trabajo presenta el análisis práctico de una API REST desarrollado con fines académicos y tomando como marco de referencia **OWASP API Security Top 10 – 2023**.
 
-El proceso comprende la identificación de escenarios de riesgo, su reproducción dentro de un entorno local y controlado, la evaluación de sus posibles consecuencias y la comprobación del comportamiento de la aplicación luego de incorporar medidas de mitigación. La API utiliza Node.js, TypeScript y Express; SQLite se emplea para la persistencia, y Docker Compose permite ejecutar el servicio en un contenedor.
+El proyecto aborda riesgos de seguridad habituales en interfaces de programación de aplicaciones mediante la revisión de código, pruebas funcionales y la implementación de controles correctivos.
 
-Las pruebas descritas en este documento tienen un propósito exclusivamente educativo. No deben ejecutarse contra sistemas, servicios o datos de terceros sin autorización expresa.
+El proceso comprende la identificación de escenarios de riesgo, su reproducción dentro de un entorno local y controlado, la evaluación de sus posibles consecuencias y la comprobación del comportamiento de la aplicación luego de incorporar medidas de mitigación.
+
+La API utiliza Node.js, TypeScript y Express; SQLite se emplea para la persistencia, y Docker Compose permite ejecutar el servicio en un contenedor.
+
+Las pruebas descritas tienen un propósito exclusivamente educativo. No deben ejecutarse contra sistemas, servicios o datos de terceros sin autorización expresa.
 
 ## 2. Objetivos y alcance
 
@@ -108,12 +112,12 @@ La comparación entre escenarios previos y posteriores a las correcciones se doc
 
 La aplicación organiza sus responsabilidades en los siguientes componentes:
 
-- **Rutas (`src/routes`)**: declaran los endpoints y asocian los middlewares con los controladores.
-- **Controladores (`src/controllers`)**: procesan las solicitudes y ejecutan la lógica de la aplicación.
-- **Middlewares (`src/middlewares`)**: validan la autenticación y los permisos.
-- **Modelo (`src/models`)**: define las estructuras de datos utilizadas por la aplicación.
-- **Servicio de base de datos (`src/services`)**: inicializa SQLite y gestiona las consultas.
-- **Punto de entrada (`src/main.ts`)**: configura Express, Helmet, las rutas y los endpoints de estado.
+- **Rutas (`src/routes`):** declaran los endpoints y asocian los middlewares con los controladores.
+- **Controladores (`src/controllers`):** procesan las solicitudes y ejecutan la lógica de la aplicación.
+- **Middlewares (`src/middlewares`):** validan la autenticación y los permisos.
+- **Modelo (`src/models`):** define las estructuras de datos utilizadas por la aplicación.
+- **Servicio de base de datos (`src/services`):** inicializa SQLite y gestiona las consultas.
+- **Punto de entrada (`src/main.ts`):** configura Express, Helmet, las rutas y los endpoints de estado.
 
 SQLite conserva los datos de usuarios, los identificadores de JWT revocados y los reclamos de cupones. En la configuración de Docker Compose, el directorio local `data/` se monta en `/app/data` dentro del contenedor para conservar la base de datos entre reinicios del servicio.
 
@@ -166,7 +170,9 @@ cd owasp-api-security-lab-felipe-monzon
 
 ### 8.1. Configurar el secreto de JWT
 
-La aplicación requiere la variable `JWT_SECRET`. El proceso de inicio falla si no está definida o tiene menos de 64 caracteres. Para generar un valor aleatorio con Node.js:
+La aplicación requiere la variable `JWT_SECRET`. El proceso de inicio falla si no está definida o tiene menos de 64 caracteres.
+
+Para generar un valor aleatorio con Node.js:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
@@ -202,7 +208,9 @@ Consultar los registros de inicio y ejecución:
 docker compose logs -f express-api
 ```
 
-La API se publica en `http://localhost:3000`. Para detener el servicio:
+La API se publica en `http://localhost:3000`.
+
+Para detener el servicio:
 
 ```bash
 docker compose down
@@ -244,7 +252,9 @@ Respuesta esperada:
 }
 ```
 
-También se pueden ejecutar solicitudes funcionales a las rutas documentadas mediante Postman. Las pruebas deben efectuarse únicamente contra la instancia local autorizada. En particular, verificar que las respuestas de error no expongan información interna y que las operaciones protegidas se comporten de acuerdo con la identidad y los permisos del usuario.
+También se pueden ejecutar solicitudes funcionales a las rutas documentadas mediante Postman. Las pruebas deben efectuarse únicamente contra la instancia local autorizada.
+
+En particular, verificar que las respuestas de error no expongan información interna y que las operaciones protegidas se comporten de acuerdo con la identidad y los permisos del usuario.
 
 El proyecto define scripts de compilación y ejecución en `package.json`; no se declara allí un script específico de pruebas automatizadas.
 
@@ -270,17 +280,20 @@ Las capturas de pantalla asociadas al proceso se organizan en la carpeta `eviden
 
 **Monzón Felipe**  
 Segundo año – Tecnicatura Superior en Desarrollo de Software Multiplataforma  
-Instituto Politécnico Formosa  
+Instituto Politécnico Formosa
+
 **Asignatura:** Seminario de Actualización III – Ciberseguridad
 
 ### Referencia principal
 
-OWASP Foundation. (2023). *OWASP API Security Top 10 – 2023.*  
-[https://owasp.org/API-Security/editions/2023/en/](https://owasp.org/API-Security/editions/2023/en/)
+OWASP Foundation. (2023). *OWASP API Security Top 10 – 2023.*
+
+https://owasp.org/API-Security/editions/2023/en/
 
 ---
 
 **Instituto Politécnico Formosa**  
 Seminario de Actualización III – Ciberseguridad  
-Trabajo práctico desarrollado con fines académicos  
+Trabajo práctico desarrollado con fines académicos
+
 Formosa, Argentina – 2026
