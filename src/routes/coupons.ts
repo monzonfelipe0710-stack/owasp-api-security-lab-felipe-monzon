@@ -1,5 +1,10 @@
+
 import { Router } from 'express';
 import { claimCoupon } from '../controllers/couponController';
+import { authenticate } from '../middlewares/auth';
+
 const router: Router = Router();
-router.post('/claim', claimCoupon);
+
+router.post('/claim', authenticate, claimCoupon);
+
 export default router;
